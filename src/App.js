@@ -5,6 +5,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import {useEffect, useState} from "react";
 import axios from "axios";
 import Web3EthContract from "web3-eth-contract";
+import Table from 'react-bootstrap/Table';
+
 import contract from "./contract/contract.json";
 const { ethereum } = window;
 Web3EthContract.setProvider(ethereum);
@@ -23,6 +25,8 @@ function App() {
   const [totalMint, setTotalMint] = useState(0);
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [transactions, setTransactions] = useState(null);
   // const [msgParams, setMsgParams] = useState(null);
 
   useEffect(() =>{
@@ -60,6 +64,15 @@ function App() {
       const networkId = await window.ethereum.request({
         method: "net_version",
       });
+      const admins = process.env.REACT_APP_ADMIN;
+      console.log("admins", admins, newAccounts[0])
+      if (admins.toLowerCase() == newAccounts[0].toLowerCase()) {
+          console.log("its admin")
+          setIsAdmin(true);
+          const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/crypto/list`)
+          console.log("transactions", res.data.transactions)
+          setTransactions(res.data.transactions)
+       }
       console.log(newAccounts)
       handleNewAccounts(newAccounts);
       handleNetworkId(networkId);
@@ -200,6 +213,58 @@ function App() {
             </div>
           </div>
         </div>
+        { 
+        isAdmin &&(
+          <div className="row d-flex justify-content-center" style={{marginTop: "2em"}}>
+            <div className="col-xl-12 col-lg-6 col-md-12 col-sm-12 col-12">
+              <div className="card">
+                <div className="card-body">
+                    <h4 className="card-title">OasisX Admin</h4>
+                    <Table striped bordered hover>
+                      <thead>
+                        <tr>
+                          <th>Minter</th>
+                          <th>TokenID</th>
+                          <th>Hash</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {
+                        transactions !== null && 
+                          transactions.map((transaction, index) =>(
+                            <tr key={index}>
+                              <td>{transaction.signer}</td>
+                              <td>{transaction.tokenID}</td>
+                              <td>{transaction.hash}</td>
+                              {transaction.status ===1 &&
+                              (
+                                <td>Required</td>
+                              )
+                              }
+                              {transaction.status ===3 &&
+                              (
+                                <td>Success</td>
+                              )
+                              }
+                              {transaction.status ===2 &&
+                              (
+                                <td>Fail</td>
+                              )
+                              }
+                            </tr>
+                          ))
+                        
+                          
+                        }
+                        
+                      </tbody>
+                    </Table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </div>
   );
